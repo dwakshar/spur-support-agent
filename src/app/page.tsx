@@ -142,8 +142,7 @@ export default function ChatPage() {
             className={styles.clearButton}
             onClick={handleClear}
             disabled={isLoading}
-            aria-label="Clear conversation"
-          >
+            aria-label="Clear conversation">
             New chat
           </button>
         </header>
