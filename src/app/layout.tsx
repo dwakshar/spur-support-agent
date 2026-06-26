@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Spur Support",
-  description: "Spur customer support chat",
+  title: "Scout Support",
+  description: "Scout customer support chat",
 };
 
 export default function RootLayout({

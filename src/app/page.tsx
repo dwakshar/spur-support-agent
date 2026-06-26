@@ -15,10 +15,10 @@ type UIMessage = {
 const GREETING: UIMessage = {
   id: "greeting",
   sender: "ai",
-  text: "Hi! I'm the Spur support assistant. Ask me about shipping, returns, or our support hours.",
+  text: "Hi! I'm the Scout support assistant. Ask me about shipping, returns, or our support hours.",
 };
 
-const SESSION_KEY = "spur_session_id";
+const SESSION_KEY = "scout_session_id";
 
 export default function ChatPage() {
   const [messages, setMessages] = useState<UIMessage[]>([]);
@@ -133,7 +133,7 @@ export default function ChatPage() {
     <div className={styles.wrapper}>
       <div className={styles.panel}>
         <header className={styles.header}>
-          <span className={styles.storeName}>Spur Support</span>
+          <span className={styles.storeName}>Scout Support</span>
           <div className={styles.statusGroup}>
             <span className={styles.statusDot} />
             <span className={styles.statusLabel}>Online</span>
@@ -164,7 +164,7 @@ export default function ChatPage() {
             ref={textareaRef}
             className={styles.textarea}
             rows={1}
-            placeholder="Message Spur support…"
+            placeholder="Message Scout support…"
             value={input}
             onChange={handleInput}
             onKeyDown={handleKeyDown}

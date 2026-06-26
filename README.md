@@ -1,4 +1,4 @@
-# Spur Support Agent
+# Scout — AI Support Agent
 
 > **Live demo → [spur-support-agent-chi.vercel.app](https://spur-support-agent-chi.vercel.app/)**
 
