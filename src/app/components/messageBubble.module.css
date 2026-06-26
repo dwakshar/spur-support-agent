@@ -1,0 +1,22 @@
+.bubble {
+  max-width: 75%;
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 14px;
+  line-height: 1.65;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: #ededed;
+}
+
+.user {
+  align-self: flex-end;
+  background: rgba(59, 130, 246, 0.12);
+  border: 1px solid rgba(59, 130, 246, 0.22);
+}
+
+.ai {
+  align-self: flex-start;
+  background: #171717;
+  border: 1px solid #2a2a2a;
+}
