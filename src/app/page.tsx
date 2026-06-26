@@ -107,6 +107,14 @@ export default function ChatPage() {
     }
   }, [input, isLoading, sessionId]);
 
+  const handleClear = () => {
+    localStorage.removeItem(SESSION_KEY);
+    setSessionId(undefined);
+    setMessages([GREETING]);
+    setInput("");
+    if (textareaRef.current) textareaRef.current.style.height = "auto";
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -130,6 +138,14 @@ export default function ChatPage() {
             <span className={styles.statusDot} />
             <span className={styles.statusLabel}>Online</span>
           </div>
+          <button
+            className={styles.clearButton}
+            onClick={handleClear}
+            disabled={isLoading}
+            aria-label="Clear conversation"
+          >
+            New chat
+          </button>
         </header>
 
         {!hydrated ? (

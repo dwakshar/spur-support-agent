@@ -124,7 +124,7 @@ Two tables:
 
 ## LLM Notes
 
-- **Provider:** Anthropic Claude, model `claude-sonnet-4-6`
+- **Provider:** Anthropic Claude, model `claude-haiku-4-5`
 - **Prompting:** A system prompt grounds the agent in a hardcoded Northpeak store FAQ covering shipping, returns, support hours, and order tracking. The model is instructed to answer only from the FAQ and offer to connect the customer to a human for anything not covered — this prevents hallucinated policies or invented order details.
 - **History:** The last 10 messages are sent as context on each request. Older messages are dropped to keep token costs predictable.
 - **Limits:** `max_tokens: 1024`, `timeout: 30s`. Any failure (timeout, rate limit, empty response, bad key) surfaces as `LLMError` and maps to a friendly `502` — the user never sees an internal error message.
