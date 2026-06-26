@@ -1,152 +1,133 @@
-# Northpeak Support — AI Live Chat Agent
+# Spur Support Agent
 
-A mini AI live-chat support agent built for the Spur take-home assignment. It lets customers ask questions about a fictional outdoor gear store (Northpeak) and get instant answers from an AI grounded in a hardcoded store FAQ. The architecture is synchronous request/response (no streaming, no websockets), built on a channel-agnostic core pipeline so additional channels (WhatsApp, Instagram) can be wired in as sibling adapters without touching the core logic — directly mirroring how Spur's multi-channel product works.
+A live-chat support agent built as a take-home for Spur. Customers type questions, an AI grounded in a store FAQ replies instantly. No streaming, no websockets — just a clean request/response cycle that's easy to reason about and easy to extend.
 
----
-
-## Tech Stack
-
-| Layer | Technology |
-|---|---|
-| Framework | Next.js 15 (App Router) + TypeScript |
-| Database | Neon Postgres (serverless) + Drizzle ORM |
-| LLM | Anthropic Claude (`claude-sonnet-4-6`) |
-| Validation | Zod v4 |
+The thing I wanted to get right architecturally: the core message pipeline knows nothing about HTTP or web chat specifically. A WhatsApp or Instagram adapter would call the exact same function. That felt like the most honest thing to build given what Spur actually does.
 
 ---
 
-## Running Locally
+## Running locally
 
-**Prerequisites:** Node.js 18 or later.
+You'll need Node 18+ and a free [Neon](https://neon.tech) Postgres database.
+
+**1. Clone and install**
 
 ```bash
-# 1. Clone and install
 git clone <repo-url>
 cd spur-support-agent
 npm install
+```
 
-# 2. Create a Neon database
-#    Go to https://neon.tech, create a project, and copy the pooled connection string.
+**2. Set up environment variables**
 
-# 3. Set up environment variables
+```bash
 cp .env.example .env.local
-# Edit .env.local and fill in both values (see Environment Variables below)
+```
 
-# 4. Apply the database schema
+Open `.env.local` and fill in the two values (see the env vars section below).
+
+**3. Run the database migration**
+
+This creates the tables in your Neon database. You only need to do this once.
+
+```bash
 npm run db:migrate
+```
 
-# 5. Start the dev server
+**4. Start the dev server**
+
+```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+Open [http://localhost:3000](http://localhost:3000). The chat should be fully functional.
 
 ---
 
-## Environment Variables
+## Environment variables
 
-| Variable | Where to get it |
-|---|---|
-| `ANTHROPIC_API_KEY` | [console.anthropic.com](https://console.anthropic.com) → API Keys |
-| `DATABASE_URL` | Neon dashboard → your project → Connection string (pooled) |
+| Variable | What it is | Where to get it |
+|---|---|---|
+| `ANTHROPIC_API_KEY` | API key for Claude | [console.anthropic.com](https://console.anthropic.com) → API Keys |
+| `DATABASE_URL` | Neon connection string | Neon dashboard → your project → **pooled** connection string |
 
-`.env` and `.env.local` are gitignored. Only `.env.example` (with empty values) is committed — no secrets are ever in the repo.
+Neither file is committed — `.env.local` is covered by `.gitignore`. Only `.env.example` with empty values is in the repo.
 
 ---
 
-## Architecture Overview
+## Database setup
 
-### Request flow
+The migration file is already generated at `drizzle/0000_young_garia.sql`. Running `npm run db:migrate` applies it.
 
-```
-Browser (page.tsx)
-  └─ src/lib/api.ts          — typed fetch helpers, JSON parse guard
-       └─ POST /api/chat/message
-            └─ route.ts      — Zod validation, error classification → HTTP status
-                 └─ src/lib/channels/core.ts  (handleInboundMessage)
-                      ├─ src/lib/db/repository.ts  — all DB access (Drizzle)
-                      └─ src/lib/llm/generateReply.ts  — sole Anthropic SDK callsite
+If you ever change the schema (`src/lib/db/schema.ts`), regenerate with:
+
+```bash
+npm run db:generate  # generates a new migration file
+npm run db:migrate   # applies it
 ```
 
-### Channel-agnostic design
+There's no seed data — the store FAQ lives in the system prompt, not the DB.
 
-`handleInboundMessage()` in `src/lib/channels/core.ts` takes a normalized `InboundMessage` (channel, sessionId?, text) and returns an `OutboundResult` (reply, sessionId). It has no knowledge of HTTP. The web chat route is the first *adapter* — a WhatsApp or Instagram adapter would call the same function with `channel: 'whatsapp'` and sit alongside it as a sibling file. The `channelEnum` in the schema is already extended for this: adding a new channel is a two-line schema change.
+---
 
-The Anthropic SDK is imported in exactly one place: `src/lib/llm/generateReply.ts`. Nothing else touches it.
+## Architecture
 
-### Folder structure
+### The layers
 
 ```
-src/
-├── app/
-│   ├── api/
-│   │   └── chat/
-│   │       ├── message/route.ts      POST — send a message
-│   │       └── [sessionId]/route.ts  GET  — load session history
-│   ├── components/
-│   │   ├── MessageBubble.tsx
-│   │   └── TypingIndicator.tsx
-│   ├── page.tsx                      Chat UI (client component)
-│   ├── layout.tsx
-│   └── globals.css
-└── lib/
-    ├── api.ts                        Typed fetch helpers
-    ├── channels/
-    │   └── core.ts                   Channel-agnostic message pipeline
-    ├── db/
-    │   ├── client.ts                 Neon + Drizzle client
-    │   ├── schema.ts                 Table + enum definitions
-    │   └── repository.ts             All DB queries
-    └── llm/
-        ├── generateReply.ts          Anthropic SDK wrapper
-        └── prompt.ts                 System prompt + FAQ
+Browser
+  └── src/lib/api.ts               fetch helpers (typed, JSON-safe)
+        └── POST /api/chat/message
+              └── route.ts          Zod validation → error mapping → HTTP response
+                    └── src/lib/channels/core.ts
+                          ├── src/lib/db/repository.ts   all DB queries live here
+                          └── src/lib/llm/generateReply.ts   only place SDK is called
 ```
 
----
+The API route handles HTTP concerns: parse the body, validate it with Zod, call the core, map errors to the right status code. That's it.
 
-## Data Model
+The channel core (`handleInboundMessage`) does the actual work: resolve or create a conversation, fetch prior history, persist the user message, call the LLM, persist the reply, return the result. It doesn't know what HTTP is.
 
-Two tables:
+The repository is the only place that writes SQL. Routes and services never touch the DB directly.
 
-**`conversations`**
-- `id` (uuid, PK) — this is the `sessionId` returned to and stored by the client
-- `channel` (enum: `web_chat`) — which adapter created this conversation
-- `createdAt`, `metadata` (jsonb, nullable for future use)
+### The channel-agnostic part
 
-**`messages`**
-- `id` (uuid, PK)
-- `conversationId` (FK → conversations, cascade delete)
-- `sender` (enum: `user` | `ai`)
-- `text`, `createdAt`
-- Indexed on `conversationId` — history is always fetched by conversation
+`handleInboundMessage` takes an `InboundMessage` — just `{ channel, sessionId?, text }` — and returns `{ reply, sessionId }`. The web chat route is one adapter. A WhatsApp adapter would be a sibling file that handles the webhook format and calls the same function with `channel: 'whatsapp'`. The DB schema already has a `channelEnum` for this.
 
----
+### A few decisions worth calling out
 
-## LLM Notes
+**User message is persisted before the LLM call.** If the LLM times out or errors, the user's message is already in the DB. It doesn't get lost.
 
-- **Provider:** Anthropic Claude, model `claude-haiku-4-5`
-- **Prompting:** A system prompt grounds the agent in a hardcoded Northpeak store FAQ covering shipping, returns, support hours, and order tracking. The model is instructed to answer only from the FAQ and offer to connect the customer to a human for anything not covered — this prevents hallucinated policies or invented order details.
-- **History:** The last 10 messages are sent as context on each request. Older messages are dropped to keep token costs predictable.
-- **Limits:** `max_tokens: 1024`, `timeout: 30s`. Any failure (timeout, rate limit, empty response, bad key) surfaces as `LLMError` and maps to a friendly `502` — the user never sees an internal error message.
+**The Anthropic SDK is behind a single function.** Only `generateReply.ts` imports it. Swapping providers means editing one file.
+
+**The DB client is lazy.** It's initialized on first use, not at module load. This matters because Next.js imports route modules at build time — a top-level throw would break the build even with valid credentials at runtime.
+
+**Session ID is the conversation UUID.** The `conversations.id` is what gets stored in `localStorage` and sent back with each request. No separate session table needed.
 
 ---
 
-## Robustness
+## LLM notes
 
-All input is validated with Zod server-side before any business logic runs. Every API route is fully wrapped in `try/catch` — no unhandled promise rejections, no raw 500s, no stack traces to the client. See [SECURITY_AND_ROBUSTNESS.md](./SECURITY_AND_ROBUSTNESS.md) for a full case-by-case breakdown.
+**Provider:** Anthropic — `claude-haiku-4-5`. Haiku is fast and cheap enough for FAQ-style support replies where the answers are already written; no need for a bigger model.
+
+**Prompting:** There's a hardcoded system prompt (`src/lib/llm/prompt.ts`) that embeds the full store FAQ — shipping times, return policy, support hours, order tracking. The model is instructed to answer only from that FAQ and, for anything not covered, to say it doesn't know and offer to connect the customer to a human agent. This prevents the model from inventing policies or making up order details.
+
+**History:** The last 10 messages are included in each request as context. Older messages are dropped. This keeps costs predictable as conversations get long.
+
+**Failure handling:** Every SDK failure — bad key, timeout (30s), rate limit, empty response — is caught and re-thrown as a typed `LLMError`. The route maps that to a `502` with a friendly message. The user never sees an internal error or a blank bubble.
 
 ---
 
-## Trade-offs & If I Had More Time
+## Trade-offs and what I'd do with more time
 
-- **No streaming.** Claude supports SSE token streaming. I chose synchronous request/response for simplicity and reliability within the timebox. Adding streaming (via the Vercel AI SDK or a raw `ReadableStream`) would be the most impactful UX improvement.
+**No streaming.** This was a deliberate call. SSE streaming would improve the feel of responses — especially longer ones — but it adds complexity (different response handling on client and server, harder to test, more edge cases). For a timebox, synchronous was the right default.
 
-- **FAQ is hardcoded in the system prompt.** For a real product this would move to a DB-backed knowledge base with a simple admin UI and retrieval (even naive keyword search or basic RAG with embeddings). The current approach is fine for a demo but doesn't scale to a real store with hundreds of policy pages.
+**FAQ is hardcoded.** Embedding the knowledge in the system prompt is fine for a demo, but it doesn't scale. The next step would be a DB-backed knowledge base with a simple admin UI, and basic retrieval (keyword search or lightweight RAG with embeddings) so the prompt stays short even with a large knowledge base.
 
-- **No rate limiting or caching.** Under real load I'd add Redis (Upstash) in front of the LLM calls: rate-limit per IP, cache repeated identical questions, and dedup in-flight requests for the same session.
+**No rate limiting.** Right now anyone can spam the endpoint and rack up API costs. I'd add per-IP rate limiting in Next.js middleware, and probably an Upstash Redis layer to cache repeated identical questions.
 
-- **No auth.** Out of scope for this take-home. In production, sessionIds would be scoped to an authenticated user rather than stored in plain localStorage.
+**No auth.** Session IDs are stored in plain `localStorage` and not tied to a user identity. For production you'd want sessions scoped to authenticated users and the `conversations` table to have a `userId` column.
 
-- **One channel implemented.** The architecture is ready — adding a WhatsApp adapter is a new file that calls `handleInboundMessage` with `channel: 'whatsapp'` and handles WhatsApp's webhook format. The schema's `channelEnum` needs one new value.
+**One channel.** The architecture is ready for more — it's really just a matter of writing the adapter and adding the channel to the enum. I'd build WhatsApp next since it's the most common support channel in markets like India.
 
-- **Minimal automated tests.** Given the timebox I relied on manual testing and TypeScript's type system. I'd add Vitest unit tests for `generateReply` (mocking the SDK), `handleInboundMessage` (mocking the repository), and integration tests hitting the actual endpoints against a test database.
+**No tests.** I relied on TypeScript and manual testing to move fast. I'd add Vitest unit tests for `generateReply` (mocking the SDK client) and `handleInboundMessage` (mocking the repository), plus integration tests against a real test DB for the API routes.
