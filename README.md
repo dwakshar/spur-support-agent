@@ -1,5 +1,7 @@
 # Spur Support Agent
 
+> **Live demo → [spur-support-agent-chi.vercel.app](https://spur-support-agent-chi.vercel.app/)**
+
 A live-chat support agent built as a take-home for Spur. Customers type questions, an AI grounded in a store FAQ replies instantly. No streaming, no websockets — just a clean request/response cycle that's easy to reason about and easy to extend.
 
 The thing I wanted to get right architecturally: the core message pipeline knows nothing about HTTP or web chat specifically. A WhatsApp or Instagram adapter would call the exact same function. That felt like the most honest thing to build given what Spur actually does.
