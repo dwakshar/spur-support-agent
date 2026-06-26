@@ -39,11 +39,17 @@ export async function generateReply(
       messages,
     });
 
-    return response.content
+    const text = response.content
       .filter((block) => block.type === "text")
       .map((block) => (block as { type: "text"; text: string }).text)
       .join("");
+
+    // empty reply is a model-side failure — treat it the same as an API error
+    if (!text.trim()) throw new LLMError("Model returned an empty response");
+
+    return text;
   } catch (err) {
+    if (err instanceof LLMError) throw err;
     throw new LLMError("Anthropic API call failed", err);
   }
 }
