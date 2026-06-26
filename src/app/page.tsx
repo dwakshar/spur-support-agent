@@ -1,10 +1,10 @@
 "use client";
 
+import { getHistory, sendMessage } from "@/lib/api";
 import { useCallback, useEffect, useRef, useState } from "react";
+import styles from "./chat.module.css";
 import MessageBubble from "./components/MessageBubble";
 import TypingIndicator from "./components/TypingIndicator";
-import { sendMessage, getHistory } from "@/lib/api";
-import styles from "./chat.module.css";
 
 type UIMessage = {
   id: string;
@@ -159,8 +159,7 @@ export default function ChatPage() {
             className={styles.sendButton}
             onClick={handleSend}
             disabled={isLoading || !hydrated || !input.trim()}
-            aria-label="Send message"
-          >
+            aria-label="Send message">
             <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
               <path
                 d="M7.5 13V2M3 6.5L7.5 2L12 6.5"
