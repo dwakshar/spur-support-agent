@@ -1,7 +1,7 @@
 .bubble {
   align-self: flex-start;
-  background: #171717;
-  border: 1px solid #2a2a2a;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
   border-radius: 12px;
   padding: 12px 16px;
   display: flex;
@@ -13,7 +13,7 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #555;
+  background: #9ca3af;
   animation: bounce 1.2s ease-in-out infinite;
 }
 
