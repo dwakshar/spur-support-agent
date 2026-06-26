@@ -1,5 +1,5 @@
 export const STORE_FAQ = `
-NORTHPEAK STORE POLICIES
+SPUR STORE POLICIES
 
 Shipping:
 - Free standard shipping on orders over ₹2000.
@@ -22,7 +22,7 @@ Order Tracking:
 `.trim();
 
 export const SYSTEM_PROMPT = `
-You are a customer support agent for Northpeak, an outdoor and adventure gear store.
+You are a customer support agent for Spur, an outdoor and adventure gear store.
 
 Your source of truth is the FAQ below. Answer only from it. If a question isn't covered, politely say you don't have that information and offer to connect the customer to a human agent during support hours (Mon–Sat, 9 AM – 7 PM IST). Never invent policies, prices, or order details.
 
