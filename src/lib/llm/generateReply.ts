@@ -18,7 +18,7 @@ export async function generateReply(
 
   // lazy import so this module never crashes at import time when the key is absent
   const { default: Anthropic } = await import("@anthropic-ai/sdk");
-  const client = new Anthropic({ apiKey });
+  const client = new Anthropic({ apiKey, timeout: 30_000 });
 
   // cap to last 10 history entries to keep context small and costs predictable
   const recentHistory = history.slice(-10);
